@@ -295,18 +295,32 @@ export class NanoCreaturesSDK {
     }
     async testEndpoint() {
         try {
-            const url = `${this.config.baseUrl}/api/auth/signup`;
-            console.log('Testing endpoint:', url);
-            const response = await fetch(url, {
+            // Try HTTP first for local development
+            const httpUrl = this.config.baseUrl.replace('https://', 'http://');
+            console.log('Testing HTTP endpoint:', httpUrl);
+            const httpResponse = await fetch(httpUrl + '/api/auth/signup', {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
                 },
             });
-            const responseText = await response.text();
-            console.log('Test Response status:', response.status);
-            console.log('Test Response body:', responseText);
-            console.log('Allowed methods:', response.headers.get('allow'));
+            const httpResponseText = await httpResponse.text();
+            console.log('HTTP Response status:', httpResponse.status);
+            console.log('HTTP Response body:', httpResponseText);
+            console.log('HTTP Allowed methods:', httpResponse.headers.get('allow'));
+            // Then try HTTPS
+            const httpsUrl = this.config.baseUrl.replace('http://', 'https://');
+            console.log('\nTesting HTTPS endpoint:', httpsUrl);
+            const httpsResponse = await fetch(httpsUrl + '/api/auth/signup', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+            const httpsResponseText = await httpsResponse.text();
+            console.log('HTTPS Response status:', httpsResponse.status);
+            console.log('HTTPS Response body:', httpsResponseText);
+            console.log('HTTPS Allowed methods:', httpsResponse.headers.get('allow'));
         }
         catch (error) {
             console.error('Test failed:', error);
