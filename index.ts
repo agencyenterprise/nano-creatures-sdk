@@ -80,6 +80,7 @@ export class NanoCreaturesSDK {
       baseUrl: config.baseUrl || DEFAULT_BASE_URL,
       apiKey: config.apiKey || '',
     };
+    console.log('SDK initialized with config:', this.config);
   }
 
   /**
