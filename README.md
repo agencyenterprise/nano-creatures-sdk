@@ -14,10 +14,7 @@ npm install @nano-creatures/sdk
 import { NanoCreaturesSDK } from '@nano-creatures/sdk';
 
 // Initialize the SDK
-const sdk = new NanoCreaturesSDK({
-  baseUrl: 'https://api.nanocreatures.com', // Optional, defaults to https://nanocreatures.app
-  apiKey: 'your-api-key' // Optional
-});
+const sdk = new NanoCreaturesSDK();
 
 // Sign up a new user
 const signUpResponse = await sdk.signUp({
