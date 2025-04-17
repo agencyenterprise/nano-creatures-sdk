@@ -113,5 +113,6 @@ export declare class NanoCreaturesSDK {
      * @returns Promise with the chat response
      */
     chat(token: string, creatureId: string, params: ChatParams | string): Promise<ChatResponse>;
+    testEndpoint(): Promise<void>;
 }
 export default NanoCreaturesSDK;

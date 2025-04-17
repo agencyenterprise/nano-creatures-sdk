@@ -283,5 +283,24 @@ export class NanoCreaturesSDK {
             throw new Error('An unexpected error occurred while sending chat message');
         }
     }
+    async testEndpoint() {
+        try {
+            const url = `${this.config.baseUrl}/api/auth/signup`;
+            console.log('Testing endpoint:', url);
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+            const responseText = await response.text();
+            console.log('Test Response status:', response.status);
+            console.log('Test Response body:', responseText);
+            console.log('Allowed methods:', response.headers.get('allow'));
+        }
+        catch (error) {
+            console.error('Test failed:', error);
+        }
+    }
 }
 export default NanoCreaturesSDK;
