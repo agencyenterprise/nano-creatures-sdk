@@ -403,37 +403,42 @@ export class NanoCreaturesSDK {
 
   async testEndpoint(): Promise<void> {
     try {
-      // Try HTTP first for local development
-      const httpUrl = this.config.baseUrl.replace('https://', 'http://');
-      console.log('Testing HTTP endpoint:', httpUrl);
+      const url = this.config.baseUrl;
+      console.log('Testing endpoints on:', url);
 
-      const httpResponse = await fetch(httpUrl + '/api/auth/signup', {
+      // Test email/password signin
+      console.log('\nTesting email/password signin...');
+      const signinResponse = await fetch(`${url}/api/auth/signin`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: 'test@example.com',
+          password: 'password123',
+          callbackUrl: '/',
+          json: true,
+        }),
+      });
+
+      const signinResponseText = await signinResponse.text();
+      console.log('Signin Response status:', signinResponse.status);
+      console.log('Signin Response body:', signinResponseText);
+      console.log('Signin Allowed methods:', signinResponse.headers.get('allow'));
+
+      // Test Google OAuth
+      console.log('\nTesting Google OAuth...');
+      const oauthResponse = await fetch(`${url}/api/auth/signin/google`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
         },
       });
 
-      const httpResponseText = await httpResponse.text();
-      console.log('HTTP Response status:', httpResponse.status);
-      console.log('HTTP Response body:', httpResponseText);
-      console.log('HTTP Allowed methods:', httpResponse.headers.get('allow'));
-
-      // Then try HTTPS
-      const httpsUrl = this.config.baseUrl.replace('http://', 'https://');
-      console.log('\nTesting HTTPS endpoint:', httpsUrl);
-
-      const httpsResponse = await fetch(httpsUrl + '/api/auth/signup', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      const httpsResponseText = await httpsResponse.text();
-      console.log('HTTPS Response status:', httpsResponse.status);
-      console.log('HTTPS Response body:', httpsResponseText);
-      console.log('HTTPS Allowed methods:', httpsResponse.headers.get('allow'));
+      const oauthResponseText = await oauthResponse.text();
+      console.log('OAuth Response status:', oauthResponse.status);
+      console.log('OAuth Response body:', oauthResponseText);
+      console.log('OAuth Allowed methods:', oauthResponse.headers.get('allow'));
     } catch (error) {
       console.error('Test failed:', error);
     }
