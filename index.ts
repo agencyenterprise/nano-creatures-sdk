@@ -135,7 +135,10 @@ export class NanoCreaturesSDK {
    */
   async signIn(options: SignInOptions): Promise<SignInResponse> {
     try {
-      const response = await fetch(`${this.config.baseUrl}/api/auth/signin`, {
+      const url = `${this.config.baseUrl}/api/auth/signin`;
+      console.log('Making request to:', url);
+
+      const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -144,24 +147,30 @@ export class NanoCreaturesSDK {
         body: JSON.stringify(options),
       });
 
+      const responseText = await response.text();
+      console.log('Response status:', response.status);
+      console.log('Response body:', responseText);
+
       if (!response.ok) {
-        const error: ErrorResponse = await response.json();
-        throw new Error(error.message);
+        try {
+          const error = JSON.parse(responseText);
+          throw new Error(error.message || 'Failed to sign in');
+        } catch (e) {
+          throw new Error(`Server returned ${response.status}: ${responseText}`);
+        }
       }
 
-      const data = await response.json();
-
-      // Create a JWT token with the user ID
-      const token = jwt.sign(
-        { userId: data.user.id, email: data.user.email },
-        'iloveburritosbaby', // This should match NEXTAUTH_SECRET
-        { expiresIn: '1h' }
-      );
-
-      return {
-        ...data,
-        token,
-      };
+      try {
+        const data = JSON.parse(responseText);
+        const token = jwt.sign(
+          { userId: data.user.id, email: data.user.email },
+          'iloveburritosbaby',
+          { expiresIn: '1h' }
+        );
+        return { ...data, token };
+      } catch (e) {
+        throw new Error(`Invalid JSON response: ${responseText}`);
+      }
     } catch (error) {
       if (error instanceof Error) {
         throw error;
