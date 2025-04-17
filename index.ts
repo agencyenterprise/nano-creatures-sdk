@@ -89,7 +89,10 @@ export class NanoCreaturesSDK {
    */
   async signUp(options: SignUpOptions): Promise<SignInResponse> {
     try {
-      const response = await fetch(`${this.config.baseUrl}/api/auth/signup`, {
+      const url = `${this.config.baseUrl}/api/auth/signup`;
+      console.log('Making request to:', url);
+
+      const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -98,12 +101,24 @@ export class NanoCreaturesSDK {
         body: JSON.stringify(options),
       });
 
+      const responseText = await response.text();
+      console.log('Response status:', response.status);
+      console.log('Response body:', responseText);
+
       if (!response.ok) {
-        const error: ErrorResponse = await response.json();
-        throw new Error(error.message);
+        try {
+          const error = JSON.parse(responseText);
+          throw new Error(error.message || 'Failed to sign up');
+        } catch (e) {
+          throw new Error(`Server returned ${response.status}: ${responseText}`);
+        }
       }
 
-      return await response.json();
+      try {
+        return JSON.parse(responseText);
+      } catch (e) {
+        throw new Error(`Invalid JSON response: ${responseText}`);
+      }
     } catch (error) {
       if (error instanceof Error) {
         throw error;
