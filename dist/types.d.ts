@@ -25,6 +25,13 @@ export interface ErrorResponse {
     code: string;
     status: number;
 }
+export interface User {
+    id: string;
+    email: string;
+    name?: string;
+    avatarUrl?: string;
+    image?: string;
+}
 export interface Creature {
     id: string;
     name: string;

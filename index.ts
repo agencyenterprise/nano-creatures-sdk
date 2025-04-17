@@ -7,9 +7,8 @@ import {
   GetCreaturesResponse,
 } from './types.js';
 import jwt from 'jsonwebtoken';
-import https from 'https';
 
-const DEFAULT_BASE_URL = 'https://nanocreatures.app';
+const DEFAULT_BASE_URL = 'https://www.nanocreatures.app';
 
 export interface CreateCreatureParams {
   name: string;
@@ -75,29 +74,12 @@ export interface ChatResponse {
 
 export class NanoCreaturesSDK {
   private config: Required<NanoCreaturesSDKConfig>;
-  private httpsAgent: https.Agent;
 
   constructor(config: NanoCreaturesSDKConfig = {}) {
     this.config = {
       baseUrl: config.baseUrl || DEFAULT_BASE_URL,
       apiKey: config.apiKey || '',
     };
-
-    // Create HTTPS agent that accepts self-signed certificates in development
-    this.httpsAgent = new https.Agent({
-      rejectUnauthorized: process.env.NODE_ENV === 'production',
-    });
-
-    console.log('SDK initialized with config:', this.config);
-  }
-
-  private async fetch(url: string, options: RequestInit): Promise<Response> {
-    const isLocalhost = url.includes('localhost');
-    const fetchOptions = {
-      ...options,
-      agent: isLocalhost ? this.httpsAgent : undefined,
-    };
-    return fetch(url, fetchOptions);
   }
 
   /**
@@ -107,36 +89,22 @@ export class NanoCreaturesSDK {
    */
   async signUp(options: SignUpOptions): Promise<SignInResponse> {
     try {
-      const url = `${this.config.baseUrl}/api/auth/signup`;
-      console.log('Making request to:', url);
-
-      const response = await fetch(url, {
+      const response = await fetch(`${this.config.baseUrl}/api/auth/signup`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           ...(this.config.apiKey ? { Authorization: `Bearer ${this.config.apiKey}` } : {}),
         },
+        credentials: 'include',
         body: JSON.stringify(options),
       });
 
-      const responseText = await response.text();
-      console.log('Response status:', response.status);
-      console.log('Response body:', responseText);
-
       if (!response.ok) {
-        try {
-          const error = JSON.parse(responseText);
-          throw new Error(error.message || 'Failed to sign up');
-        } catch (e) {
-          throw new Error(`Server returned ${response.status}: ${responseText}`);
-        }
+        const error: ErrorResponse = await response.json();
+        throw new Error(error.message);
       }
 
-      try {
-        return JSON.parse(responseText);
-      } catch (e) {
-        throw new Error(`Invalid JSON response: ${responseText}`);
-      }
+      return await response.json();
     } catch (error) {
       if (error instanceof Error) {
         throw error;
@@ -152,49 +120,34 @@ export class NanoCreaturesSDK {
    */
   async signIn(options: SignInOptions): Promise<SignInResponse> {
     try {
-      const url = `${this.config.baseUrl}/api/auth/callback/credentials`;
-      console.log('Making request to:', url);
-
-      const response = await this.fetch(url, {
+      const response = await fetch(`${this.config.baseUrl}/api/auth/signin`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(this.config.apiKey ? { Authorization: `Bearer ${this.config.apiKey}` } : {}),
         },
-        body: JSON.stringify({
-          email: options.email,
-          password: options.password,
-          redirect: false,
-          json: true,
-        }),
+        credentials: 'include',
+        body: JSON.stringify(options),
       });
 
-      const responseText = await response.text();
-      console.log('Response status:', response.status);
-      console.log('Response body:', responseText);
-
       if (!response.ok) {
-        try {
-          const error = JSON.parse(responseText);
-          throw new Error(error.message || 'Failed to sign in');
-        } catch (e) {
-          throw new Error(`Server returned ${response.status}: ${responseText}`);
-        }
+        const error: ErrorResponse = await response.json();
+        throw new Error(error.message);
       }
 
-      try {
-        const data = JSON.parse(responseText);
-        return {
-          token: data.token,
-          user: {
-            id: data.user.id,
-            email: data.user.email,
-            name: data.user.name,
-            image: data.user.image,
-          },
-        };
-      } catch (e) {
-        throw new Error(`Invalid JSON response: ${responseText}`);
-      }
+      const data = await response.json();
+
+      // Create a JWT token with the user ID
+      const token = jwt.sign(
+        { userId: data.user.id, email: data.user.email },
+        'iloveburritosbaby', // This should match NEXTAUTH_SECRET
+        { expiresIn: '1h' }
+      );
+
+      return {
+        ...data,
+        token,
+      };
     } catch (error) {
       if (error instanceof Error) {
         throw error;
@@ -422,43 +375,6 @@ export class NanoCreaturesSDK {
         throw error;
       }
       throw new Error('An unexpected error occurred while sending chat message');
-    }
-  }
-
-  async testEndpoint(): Promise<void> {
-    try {
-      const url = this.config.baseUrl;
-      console.log('Testing endpoints on:', url);
-
-      // Test email/password signin
-      console.log('\nTesting email/password signin...');
-      const signinResponse = await this.fetch(`${url}/api/auth/signin`, {
-        method: 'GET', // Changed to GET since that's what the server accepts
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      const signinResponseText = await signinResponse.text();
-      console.log('Signin Response status:', signinResponse.status);
-      console.log('Signin Response body:', signinResponseText);
-      console.log('Signin Allowed methods:', signinResponse.headers.get('allow'));
-
-      // Test Google OAuth
-      console.log('\nTesting Google OAuth...');
-      const oauthResponse = await this.fetch(`${url}/api/auth/signin/google`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      const oauthResponseText = await oauthResponse.text();
-      console.log('OAuth Response status:', oauthResponse.status);
-      console.log('OAuth Response body:', oauthResponseText);
-      console.log('OAuth Allowed methods:', oauthResponse.headers.get('allow'));
-    } catch (error) {
-      console.error('Test failed:', error);
     }
   }
 }

@@ -56,9 +56,7 @@ export interface ChatResponse {
 }
 export declare class NanoCreaturesSDK {
     private config;
-    private httpsAgent;
     constructor(config?: NanoCreaturesSDKConfig);
-    private fetch;
     /**
      * Signs up a new user
      * @param options - Sign up options containing email, optional name and password
@@ -115,6 +113,5 @@ export declare class NanoCreaturesSDK {
      * @returns Promise with the chat response
      */
     chat(token: string, creatureId: string, params: ChatParams | string): Promise<ChatResponse>;
-    testEndpoint(): Promise<void>;
 }
 export default NanoCreaturesSDK;

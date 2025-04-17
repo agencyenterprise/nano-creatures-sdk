@@ -1,25 +1,11 @@
 import jwt from 'jsonwebtoken';
-import https from 'https';
-const DEFAULT_BASE_URL = 'https://nanocreatures.app';
+const DEFAULT_BASE_URL = 'https://www.nanocreatures.app';
 export class NanoCreaturesSDK {
     constructor(config = {}) {
         this.config = {
             baseUrl: config.baseUrl || DEFAULT_BASE_URL,
             apiKey: config.apiKey || '',
         };
-        // Create HTTPS agent that accepts self-signed certificates for local development
-        this.httpsAgent = new https.Agent({
-            rejectUnauthorized: !this.config.baseUrl.includes('localhost'),
-        });
-        console.log('SDK initialized with config:', this.config);
-    }
-    async fetch(url, options) {
-        const isLocalhost = url.includes('localhost');
-        const fetchOptions = {
-            ...options,
-            agent: isLocalhost ? this.httpsAgent : undefined,
-        };
-        return fetch(url, fetchOptions);
     }
     /**
      * Signs up a new user
@@ -28,34 +14,20 @@ export class NanoCreaturesSDK {
      */
     async signUp(options) {
         try {
-            const url = `${this.config.baseUrl}/api/auth/signup`;
-            console.log('Making request to:', url);
-            const response = await fetch(url, {
+            const response = await fetch(`${this.config.baseUrl}/api/auth/signup`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     ...(this.config.apiKey ? { Authorization: `Bearer ${this.config.apiKey}` } : {}),
                 },
+                credentials: 'include',
                 body: JSON.stringify(options),
             });
-            const responseText = await response.text();
-            console.log('Response status:', response.status);
-            console.log('Response body:', responseText);
             if (!response.ok) {
-                try {
-                    const error = JSON.parse(responseText);
-                    throw new Error(error.message || 'Failed to sign up');
-                }
-                catch (e) {
-                    throw new Error(`Server returned ${response.status}: ${responseText}`);
-                }
+                const error = await response.json();
+                throw new Error(error.message);
             }
-            try {
-                return JSON.parse(responseText);
-            }
-            catch (e) {
-                throw new Error(`Invalid JSON response: ${responseText}`);
-            }
+            return await response.json();
         }
         catch (error) {
             if (error instanceof Error) {
@@ -71,36 +43,27 @@ export class NanoCreaturesSDK {
      */
     async signIn(options) {
         try {
-            const url = `${this.config.baseUrl}/api/auth/signin`;
-            console.log('Making request to:', url);
-            const response = await fetch(url, {
+            const response = await fetch(`${this.config.baseUrl}/api/auth/signin`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     ...(this.config.apiKey ? { Authorization: `Bearer ${this.config.apiKey}` } : {}),
                 },
+                credentials: 'include',
                 body: JSON.stringify(options),
             });
-            const responseText = await response.text();
-            console.log('Response status:', response.status);
-            console.log('Response body:', responseText);
             if (!response.ok) {
-                try {
-                    const error = JSON.parse(responseText);
-                    throw new Error(error.message || 'Failed to sign in');
-                }
-                catch (e) {
-                    throw new Error(`Server returned ${response.status}: ${responseText}`);
-                }
+                const error = await response.json();
+                throw new Error(error.message);
             }
-            try {
-                const data = JSON.parse(responseText);
-                const token = jwt.sign({ userId: data.user.id, email: data.user.email }, 'iloveburritosbaby', { expiresIn: '1h' });
-                return { ...data, token };
-            }
-            catch (e) {
-                throw new Error(`Invalid JSON response: ${responseText}`);
-            }
+            const data = await response.json();
+            // Create a JWT token with the user ID
+            const token = jwt.sign({ userId: data.user.id, email: data.user.email }, 'iloveburritosbaby', // This should match NEXTAUTH_SECRET
+            { expiresIn: '1h' });
+            return {
+                ...data,
+                token,
+            };
         }
         catch (error) {
             if (error instanceof Error) {
@@ -304,39 +267,6 @@ export class NanoCreaturesSDK {
                 throw error;
             }
             throw new Error('An unexpected error occurred while sending chat message');
-        }
-    }
-    async testEndpoint() {
-        try {
-            const url = this.config.baseUrl;
-            console.log('Testing endpoints on:', url);
-            // Test email/password signin
-            console.log('\nTesting email/password signin...');
-            const signinResponse = await this.fetch(`${url}/api/auth/signin`, {
-                method: 'GET', // Changed to GET since that's what the server accepts
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-            });
-            const signinResponseText = await signinResponse.text();
-            console.log('Signin Response status:', signinResponse.status);
-            console.log('Signin Response body:', signinResponseText);
-            console.log('Signin Allowed methods:', signinResponse.headers.get('allow'));
-            // Test Google OAuth
-            console.log('\nTesting Google OAuth...');
-            const oauthResponse = await this.fetch(`${url}/api/auth/signin/google`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-            });
-            const oauthResponseText = await oauthResponse.text();
-            console.log('OAuth Response status:', oauthResponse.status);
-            console.log('OAuth Response body:', oauthResponseText);
-            console.log('OAuth Allowed methods:', oauthResponse.headers.get('allow'));
-        }
-        catch (error) {
-            console.error('Test failed:', error);
         }
     }
 }
