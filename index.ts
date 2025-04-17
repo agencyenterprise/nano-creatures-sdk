@@ -83,9 +83,9 @@ export class NanoCreaturesSDK {
       apiKey: config.apiKey || '',
     };
 
-    // Create HTTPS agent that accepts self-signed certificates for local development
+    // Create HTTPS agent that accepts self-signed certificates in development
     this.httpsAgent = new https.Agent({
-      rejectUnauthorized: !this.config.baseUrl.includes('localhost'),
+      rejectUnauthorized: process.env.NODE_ENV === 'production',
     });
 
     console.log('SDK initialized with config:', this.config);
@@ -152,16 +152,20 @@ export class NanoCreaturesSDK {
    */
   async signIn(options: SignInOptions): Promise<SignInResponse> {
     try {
-      const url = `${this.config.baseUrl}/api/auth/signin`;
+      const url = `${this.config.baseUrl}/api/auth/callback/credentials`;
       console.log('Making request to:', url);
 
-      const response = await fetch(url, {
+      const response = await this.fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(this.config.apiKey ? { Authorization: `Bearer ${this.config.apiKey}` } : {}),
         },
-        body: JSON.stringify(options),
+        body: JSON.stringify({
+          email: options.email,
+          password: options.password,
+          redirect: false,
+          json: true,
+        }),
       });
 
       const responseText = await response.text();
@@ -179,12 +183,15 @@ export class NanoCreaturesSDK {
 
       try {
         const data = JSON.parse(responseText);
-        const token = jwt.sign(
-          { userId: data.user.id, email: data.user.email },
-          'iloveburritosbaby',
-          { expiresIn: '1h' }
-        );
-        return { ...data, token };
+        return {
+          token: data.token,
+          user: {
+            id: data.user.id,
+            email: data.user.email,
+            name: data.user.name,
+            image: data.user.image,
+          },
+        };
       } catch (e) {
         throw new Error(`Invalid JSON response: ${responseText}`);
       }
