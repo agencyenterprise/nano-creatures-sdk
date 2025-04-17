@@ -15,7 +15,7 @@ import { NanoCreaturesSDK } from '@nano-creatures/sdk';
 
 // Initialize the SDK
 const sdk = new NanoCreaturesSDK({
-  baseUrl: 'https://api.nanocreatures.com', // Optional, defaults to http://localhost:3000
+  baseUrl: 'https://api.nanocreatures.com', // Optional, defaults to https://nanocreatures.app
   apiKey: 'your-api-key' // Optional
 });
 
