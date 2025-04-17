@@ -56,7 +56,9 @@ export interface ChatResponse {
 }
 export declare class NanoCreaturesSDK {
     private config;
+    private httpsAgent;
     constructor(config?: NanoCreaturesSDKConfig);
+    private fetch;
     /**
      * Signs up a new user
      * @param options - Sign up options containing email, optional name and password

@@ -7,6 +7,7 @@ import {
   GetCreaturesResponse,
 } from './types.js';
 import jwt from 'jsonwebtoken';
+import https from 'https';
 
 const DEFAULT_BASE_URL = 'https://nanocreatures.app';
 
@@ -74,13 +75,29 @@ export interface ChatResponse {
 
 export class NanoCreaturesSDK {
   private config: Required<NanoCreaturesSDKConfig>;
+  private httpsAgent: https.Agent;
 
   constructor(config: NanoCreaturesSDKConfig = {}) {
     this.config = {
       baseUrl: config.baseUrl || DEFAULT_BASE_URL,
       apiKey: config.apiKey || '',
     };
+
+    // Create HTTPS agent that accepts self-signed certificates for local development
+    this.httpsAgent = new https.Agent({
+      rejectUnauthorized: !this.config.baseUrl.includes('localhost'),
+    });
+
     console.log('SDK initialized with config:', this.config);
+  }
+
+  private async fetch(url: string, options: RequestInit): Promise<Response> {
+    const isLocalhost = url.includes('localhost');
+    const fetchOptions = {
+      ...options,
+      agent: isLocalhost ? this.httpsAgent : undefined,
+    };
+    return fetch(url, fetchOptions);
   }
 
   /**
@@ -408,17 +425,11 @@ export class NanoCreaturesSDK {
 
       // Test email/password signin
       console.log('\nTesting email/password signin...');
-      const signinResponse = await fetch(`${url}/api/auth/signin`, {
-        method: 'POST',
+      const signinResponse = await this.fetch(`${url}/api/auth/signin`, {
+        method: 'GET', // Changed to GET since that's what the server accepts
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          email: 'test@example.com',
-          password: 'password123',
-          callbackUrl: '/',
-          json: true,
-        }),
       });
 
       const signinResponseText = await signinResponse.text();
@@ -428,7 +439,7 @@ export class NanoCreaturesSDK {
 
       // Test Google OAuth
       console.log('\nTesting Google OAuth...');
-      const oauthResponse = await fetch(`${url}/api/auth/signin/google`, {
+      const oauthResponse = await this.fetch(`${url}/api/auth/signin/google`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
