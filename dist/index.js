@@ -20,7 +20,6 @@ export class NanoCreaturesSDK {
                     'Content-Type': 'application/json',
                     ...(this.config.apiKey ? { Authorization: `Bearer ${this.config.apiKey}` } : {}),
                 },
-                credentials: 'include',
                 body: JSON.stringify(options),
             });
             if (!response.ok) {
@@ -49,7 +48,6 @@ export class NanoCreaturesSDK {
                     'Content-Type': 'application/json',
                     ...(this.config.apiKey ? { Authorization: `Bearer ${this.config.apiKey}` } : {}),
                 },
-                credentials: 'include',
                 body: JSON.stringify(options),
             });
             if (!response.ok) {
