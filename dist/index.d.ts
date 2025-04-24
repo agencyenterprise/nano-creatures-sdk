@@ -54,6 +54,14 @@ export interface ChatResponse {
     github_filters?: any;
     google_filters?: any;
 }
+export interface UpdateMemorySourceParams {
+    name?: string;
+    type?: 'STATIC_TEXT' | 'DOCUMENT';
+    content?: string;
+    fileUrl?: string;
+    fileName?: string;
+    fileSize?: number;
+}
 export declare class NanoCreaturesSDK {
     private config;
     constructor(config?: NanoCreaturesSDKConfig);
@@ -113,5 +121,29 @@ export declare class NanoCreaturesSDK {
      * @returns Promise with the chat response
      */
     chat(token: string, creatureId: string, params: ChatParams | string): Promise<ChatResponse>;
+    /**
+     * Deletes a memory source from a creature
+     * @param token - User authentication token
+     * @param creatureId - ID of the creature that owns the memory source
+     * @param memorySourceId - ID of the memory source to delete
+     * @returns Promise that resolves when the memory source is deleted
+     */
+    deleteMemorySource(token: string, creatureId: string, memorySourceId: string): Promise<void>;
+    /**
+     * Gets all memory sources for a creature
+     * @param token - User authentication token
+     * @param creatureId - ID of the creature to get memory sources from
+     * @returns Promise with the list of memory sources
+     */
+    getMemorySources(token: string, creatureId: string): Promise<MemorySource[]>;
+    /**
+     * Updates an existing memory source for a creature
+     * @param token - User authentication token
+     * @param creatureId - ID of the creature that owns the memory source
+     * @param memorySourceId - ID of the memory source to update
+     * @param params - Update parameters
+     * @returns Promise with the updated memory source
+     */
+    editMemorySource(token: string, creatureId: string, memorySourceId: string, params: UpdateMemorySourceParams): Promise<MemorySource>;
 }
 export default NanoCreaturesSDK;

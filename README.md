@@ -192,6 +192,63 @@ await sdk.createMemorySource(token, creatureId, {
 });
 ```
 
+#### Get Memory Sources
+
+```typescript
+async getMemorySources(token: string, creatureId: string): Promise<MemorySource[]>
+```
+
+Retrieves all memory sources for a specific creature.
+
+##### Parameters
+- `token`: Authentication token
+- `creatureId`: ID of the creature
+
+##### Returns
+- Array of `MemorySource` objects
+
+#### Edit Memory Source
+
+```typescript
+async editMemorySource(
+  token: string,
+  creatureId: string,
+  memorySourceId: string,
+  params: UpdateMemorySourceParams
+): Promise<MemorySource>
+```
+
+Updates an existing memory source for a creature.
+
+##### Parameters
+- `token`: Authentication token
+- `creatureId`: ID of the creature
+- `memorySourceId`: ID of the memory source to update
+- `params`: Update parameters:
+  - `name`: (Optional) New name for the memory source
+  - `type`: (Optional) New type ('STATIC_TEXT' | 'DOCUMENT')
+  - `content`: (Optional) New content for STATIC_TEXT type
+  - `fileUrl`: (Optional) New URL for DOCUMENT type
+  - `fileName`: (Optional) New file name for DOCUMENT type
+  - `fileSize`: (Optional) New file size for DOCUMENT type
+
+#### Delete Memory Source
+
+```typescript
+async deleteMemorySource(
+  token: string,
+  creatureId: string,
+  memorySourceId: string
+): Promise<void>
+```
+
+Deletes a memory source from a creature.
+
+##### Parameters
+- `token`: Authentication token
+- `creatureId`: ID of the creature
+- `memorySourceId`: ID of the memory source to delete
+
 ### Chat
 
 #### Send Message

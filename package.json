@@ -28,11 +28,8 @@
     ],
     "author": "",
     "license": "MIT",
-    "dependencies": {
-        "jsonwebtoken": "^9.0.2"
-    },
+    "dependencies": {},
     "devDependencies": {
-        "@types/jsonwebtoken": "^9.0.9",
         "typescript": "^5.0.0"
     }
 }

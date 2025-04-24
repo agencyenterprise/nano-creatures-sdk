@@ -6,7 +6,6 @@ import {
   ErrorResponse,
   GetCreaturesResponse,
 } from './types.js';
-import jwt from 'jsonwebtoken';
 
 const DEFAULT_BASE_URL = 'https://www.nanocreatures.app';
 
@@ -72,6 +71,15 @@ export interface ChatResponse {
   google_filters?: any;
 }
 
+export interface UpdateMemorySourceParams {
+  name?: string;
+  type?: 'STATIC_TEXT' | 'DOCUMENT';
+  content?: string;
+  fileUrl?: string;
+  fileName?: string;
+  fileSize?: number;
+}
+
 export class NanoCreaturesSDK {
   private config: Required<NanoCreaturesSDKConfig>;
 
@@ -135,19 +143,7 @@ export class NanoCreaturesSDK {
         throw new Error(error.message);
       }
 
-      const data = await response.json();
-
-      // Create a JWT token with the user ID
-      const token = jwt.sign(
-        { userId: data.user.id, email: data.user.email },
-        'iloveburritosbaby', // This should match NEXTAUTH_SECRET
-        { expiresIn: '1h' }
-      );
-
-      return {
-        ...data,
-        token,
-      };
+      return await response.json();
     } catch (error) {
       if (error instanceof Error) {
         throw error;
@@ -288,41 +284,75 @@ export class NanoCreaturesSDK {
     params: CreateMemorySourceParams
   ): Promise<MemorySource> {
     try {
-      const formData = new FormData();
-      formData.append('name', params.name);
-      formData.append('type', params.type);
+      if (params.type === 'DOCUMENT' && params.file) {
+        // Convert file to base64
+        const base64Content = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            if (typeof reader.result === 'string') {
+              resolve(reader.result);
+            } else {
+              reject(new Error('Failed to convert file to base64'));
+            }
+          };
+          reader.onerror = error => reject(error);
+          reader.readAsDataURL(params.file!);
+        });
 
-      if (params.type === 'STATIC_TEXT' && params.content) {
-        formData.append('content', params.content);
-      } else if (params.type === 'DOCUMENT') {
-        if (params.fileUrl) {
-          formData.append('fileUrl', params.fileUrl);
+        const response = await fetch(
+          `${this.config.baseUrl}/api/creatures/${creatureId}/memory-sources`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              type: 'DOCUMENT',
+              name: params.name,
+              fileUrl: base64Content,
+              fileName: params.file.name,
+              fileSize: params.file.size,
+            }),
+          }
+        );
+
+        if (!response.ok) {
+          const error: ErrorResponse = await response.json();
+          throw new Error(error.message);
         }
-        if (params.fileName) {
-          formData.append('fileName', params.fileName);
+
+        return await response.json();
+      } else {
+        // Handle non-file uploads (static text or URL-based documents)
+        const response = await fetch(
+          `${this.config.baseUrl}/api/creatures/${creatureId}/memory-sources`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              name: params.name,
+              type: params.type,
+              ...(params.type === 'STATIC_TEXT' && params.content ? { content: params.content } : {}),
+              ...(params.type === 'DOCUMENT' ? {
+                fileUrl: params.fileUrl,
+                fileName: params.fileName,
+                fileSize: params.fileSize,
+              } : {}),
+            }),
+          }
+        );
+
+        if (!response.ok) {
+          const error: ErrorResponse = await response.json();
+          throw new Error(error.message);
         }
-        if (params.fileSize) {
-          formData.append('fileSize', params.fileSize.toString());
-        }
+
+        return await response.json();
       }
-
-      const response = await fetch(
-        `${this.config.baseUrl}/api/creatures/${creatureId}/memory-sources`,
-        {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          body: formData,
-        }
-      );
-
-      if (!response.ok) {
-        const error: ErrorResponse = await response.json();
-        throw new Error(error.message);
-      }
-
-      return await response.json();
     } catch (error) {
       if (error instanceof Error) {
         throw error;
@@ -375,6 +405,122 @@ export class NanoCreaturesSDK {
         throw error;
       }
       throw new Error('An unexpected error occurred while sending chat message');
+    }
+  }
+
+  /**
+   * Deletes a memory source from a creature
+   * @param token - User authentication token
+   * @param creatureId - ID of the creature that owns the memory source
+   * @param memorySourceId - ID of the memory source to delete
+   * @returns Promise that resolves when the memory source is deleted
+   */
+  async deleteMemorySource(
+    token: string,
+    creatureId: string,
+    memorySourceId: string
+  ): Promise<void> {
+    try {
+      const response = await fetch(
+        `${this.config.baseUrl}/api/creatures/${creatureId}/memory-sources/${memorySourceId}`,
+        {
+          method: 'DELETE',
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const error: ErrorResponse = await response.json();
+        throw new Error(error.message);
+      }
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('An unexpected error occurred while deleting memory source');
+    }
+  }
+
+  /**
+   * Gets all memory sources for a creature
+   * @param token - User authentication token
+   * @param creatureId - ID of the creature to get memory sources from
+   * @returns Promise with the list of memory sources
+   */
+  async getMemorySources(token: string, creatureId: string): Promise<MemorySource[]> {
+    try {
+      const response = await fetch(
+        `${this.config.baseUrl}/api/creatures/${creatureId}/memory-sources`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const error: ErrorResponse = await response.json();
+        throw new Error(error.message);
+      }
+
+      return await response.json();
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('An unexpected error occurred while fetching memory sources');
+    }
+  }
+
+  /**
+   * Updates an existing memory source for a creature
+   * @param token - User authentication token
+   * @param creatureId - ID of the creature that owns the memory source
+   * @param memorySourceId - ID of the memory source to update
+   * @param params - Update parameters
+   * @returns Promise with the updated memory source
+   */
+  async editMemorySource(
+    token: string,
+    creatureId: string,
+    memorySourceId: string,
+    params: UpdateMemorySourceParams
+  ): Promise<MemorySource> {
+    try {
+      const response = await fetch(
+        `${this.config.baseUrl}/api/creatures/${creatureId}/memory-sources/${memorySourceId}`,
+        {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            ...(params.name && { name: params.name }),
+            ...(params.type && { type: params.type }),
+            ...(params.content && { content: params.content }),
+            ...(params.fileUrl && { fileUrl: params.fileUrl }),
+            ...(params.fileName && { fileName: params.fileName }),
+            ...(params.fileSize && { fileSize: params.fileSize }),
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const error: ErrorResponse = await response.json();
+        throw new Error(error.message);
+      }
+
+      return await response.json();
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('An unexpected error occurred while updating memory source');
     }
   }
 }
